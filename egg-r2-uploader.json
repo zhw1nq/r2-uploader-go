@@ -4,11 +4,11 @@
         "version": "PLCN_v3",
         "update_url": null
     },
-    "exported_at": "2026-10-05T15:18:00+00:00",
+    "exported_at": "2026-10-05T15:28:00+00:00",
     "name": "Cloudflare R2 Uploader",
     "author": "hi@vhming.com",
     "uuid": "edb76057-793d-49b8-93ad-d31ddc731cb8",
-    "description": "Production-ready Cloudflare R2 Uploader with dark Web Dashboard SPA, multi-session keys, and activity audit logs.",
+    "description": "Production-ready Cloudflare R2 Uploader with automated Git clone & Go compilation, dark Web Dashboard, multi-session keys, and audit logs.",
     "icon": null,
     "tags": [
         "golang",
@@ -19,13 +19,13 @@
     ],
     "features": null,
     "docker_images": {
-        "Alpine (Yolks)": "ghcr.io/parkervcp/yolks:alpine",
-        "Debian (Yolks)": "ghcr.io/parkervcp/yolks:debian",
-        "Go 1.24 (Yolks)": "ghcr.io/parkervcp/yolks:go_1.24"
+        "Go 1.24 (Yolks - Auto Build)": "ghcr.io/parkervcp/yolks:go_1.24",
+        "Alpine (Yolks - Prebuilt Binary)": "ghcr.io/parkervcp/yolks:alpine",
+        "Debian (Yolks - Prebuilt Binary)": "ghcr.io/parkervcp/yolks:debian"
     },
     "file_denylist": [],
     "startup_commands": {
-        "Default": "chmod +x {{SERVER_BINARY}} && ./{{SERVER_BINARY}}"
+        "Default": "if [ \"${AUTO_UPDATE}\" = \"1\" ] && [ -d .git ]; then echo \"[Updater] Pulling latest code and rebuilding...\"; git config --global --add safe.directory /home/container; git pull origin ${GIT_BRANCH}; if command -v go >/dev/null 2>&1; then CGO_ENABLED=0 go build -ldflags=\"-s -w\" -o ${SERVER_BINARY} ./cmd/server; fi; fi; if [ ! -f ./${SERVER_BINARY} ]; then if command -v go >/dev/null 2>&1; then echo \"[Builder] Building ${SERVER_BINARY} from source...\"; CGO_ENABLED=0 go build -ldflags=\"-s -w\" -o ${SERVER_BINARY} ./cmd/server; else echo \"[FATAL] Binary not found and Go is missing. Reinstall server or switch image to Go 1.24.\"; exit 1; fi; fi; chmod +x ./${SERVER_BINARY} && ./${SERVER_BINARY}"
     },
     "config": {
         "files": "{\r\n    \".env\": {\r\n        \"parser\": \"properties\",\r\n        \"find\": {\r\n            \"PORT\": \"{{server.build.default.port}}\",\r\n            \"R2_ACCOUNT_ID\": \"{{env.R2_ACCOUNT_ID}}\",\r\n            \"R2_ACCESS_KEY_ID\": \"{{env.R2_ACCESS_KEY_ID}}\",\r\n            \"R2_SECRET_ACCESS_KEY\": \"{{env.R2_SECRET_ACCESS_KEY}}\",\r\n            \"R2_BUCKET_NAME\": \"{{env.R2_BUCKET_NAME}}\",\r\n            \"R2_ROOT_FOLDER\": \"{{env.R2_ROOT_FOLDER}}\",\r\n            \"R2_PUBLIC_DOMAIN\": \"{{env.R2_PUBLIC_DOMAIN}}\",\r\n            \"APP_URL\": \"{{env.APP_URL}}\",\r\n            \"ADMIN_KEY\": \"{{env.ADMIN_KEY}}\"\r\n        }\r\n    }\r\n}",
@@ -35,16 +35,54 @@
     },
     "scripts": {
         "installation": {
-            "script": "#!/bin/bash\n# r2-uploader installation script\nmkdir -p /mnt/server/data\n\nif [ ! -f /mnt/server/.env ]; then\ncat << 'EOF' > /mnt/server/.env\nPORT=${SERVER_PORT}\nR2_ACCOUNT_ID=${R2_ACCOUNT_ID}\nR2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}\nR2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}\nR2_BUCKET_NAME=${R2_BUCKET_NAME}\nR2_ROOT_FOLDER=${R2_ROOT_FOLDER}\nR2_PUBLIC_DOMAIN=${R2_PUBLIC_DOMAIN}\nAPP_URL=${APP_URL}\nADMIN_KEY=${ADMIN_KEY}\nSQLITE_PATH=data/data.db\nKEY_PREFIX=sk_vhming_\nEOF\nfi\n\nif [ -n \"${DOWNLOAD_URL}\" ]; then\n  echo \"Downloading binary from ${DOWNLOAD_URL}...\"\n  curl -sSL -o /mnt/server/${SERVER_BINARY} \"${DOWNLOAD_URL}\"\n  chmod +x /mnt/server/${SERVER_BINARY}\nfi\n\necho \"-----------------------------------------\"\necho \"Installation completed.\"\necho \"Please ensure '${SERVER_BINARY}' is present before starting.\"\necho \"-----------------------------------------\"",
-            "container": "ghcr.io/parkervcp/installers:debian",
-            "entrypoint": "/bin/bash"
+            "script": "#!/bin/ash\n# Cloudflare R2 Uploader Automatic Installer & Builder\napk add --no-cache git ca-certificates\n\ncd /mnt/server\nmkdir -p data\n\ngit config --global --add safe.directory /mnt/server\n\nif [ -d .git ]; then\n    echo \"[Installer] Updating repository...\"\n    git pull origin ${GIT_BRANCH}\nelse\n    echo \"[Installer] Cloning from ${GIT_ADDRESS} (${GIT_BRANCH})...\"\n    git clone --single-branch --branch ${GIT_BRANCH} ${GIT_ADDRESS} .\nfi\n\necho \"[Installer] Compiling Go production binary...\"\nCGO_ENABLED=0 go build -ldflags=\"-s -w\" -o ${SERVER_BINARY} ./cmd/server\nchmod +x ${SERVER_BINARY}\n\nif [ ! -f .env ]; then\n    cp .env.example .env 2>/dev/null || true\nfi\n\necho \"-----------------------------------------\"\necho \"Build successful! Binary: ${SERVER_BINARY}\"\necho \"-----------------------------------------\"",
+            "container": "golang:1.24-alpine",
+            "entrypoint": "/bin/ash"
         }
     },
     "variables": [
         {
             "sort": 1,
+            "name": "Git Repository Address",
+            "description": "Git repository to clone and build source from.",
+            "env_variable": "GIT_ADDRESS",
+            "default_value": "https://github.com/zhw1nq/r2-uploader-go.git",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string"
+            ]
+        },
+        {
+            "sort": 2,
+            "name": "Git Branch",
+            "description": "Branch to clone or pull updates from.",
+            "env_variable": "GIT_BRANCH",
+            "default_value": "main",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string"
+            ]
+        },
+        {
+            "sort": 3,
+            "name": "Auto Update & Rebuild on Start",
+            "description": "Set to 1 to automatically git pull and rebuild binary on every server start.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "boolean"
+            ]
+        },
+        {
+            "sort": 4,
             "name": "Server Binary Name",
-            "description": "The name of the executable binary file to run.",
+            "description": "The executable binary name.",
             "env_variable": "SERVER_BINARY",
             "default_value": "r2-uploader",
             "user_viewable": true,
@@ -56,9 +94,9 @@
             ]
         },
         {
-            "sort": 2,
+            "sort": 5,
             "name": "Cloudflare Account ID",
-            "description": "Your Cloudflare Account ID found in R2 Overview dashboard.",
+            "description": "Cloudflare Account ID found in R2 Overview.",
             "env_variable": "R2_ACCOUNT_ID",
             "default_value": "",
             "user_viewable": true,
@@ -70,9 +108,9 @@
             ]
         },
         {
-            "sort": 3,
+            "sort": 6,
             "name": "Cloudflare R2 Access Key ID",
-            "description": "R2 API Token Access Key ID with Object Read & Write permissions.",
+            "description": "R2 API Access Key ID with Object Read & Write permissions.",
             "env_variable": "R2_ACCESS_KEY_ID",
             "default_value": "",
             "user_viewable": true,
@@ -84,9 +122,9 @@
             ]
         },
         {
-            "sort": 4,
+            "sort": 7,
             "name": "Cloudflare R2 Secret Access Key",
-            "description": "R2 API Token Secret Access Key.",
+            "description": "R2 API Secret Access Key.",
             "env_variable": "R2_SECRET_ACCESS_KEY",
             "default_value": "",
             "user_viewable": true,
@@ -98,9 +136,9 @@
             ]
         },
         {
-            "sort": 5,
+            "sort": 8,
             "name": "R2 Bucket Name",
-            "description": "Target bucket name in Cloudflare R2.",
+            "description": "Target Cloudflare R2 bucket name.",
             "env_variable": "R2_BUCKET_NAME",
             "default_value": "uploader",
             "user_viewable": true,
@@ -112,7 +150,7 @@
             ]
         },
         {
-            "sort": 6,
+            "sort": 9,
             "name": "R2 Root Folder Scope",
             "description": "Root folder prefix to sandbox uploaded files (defaults to uploader).",
             "env_variable": "R2_ROOT_FOLDER",
@@ -126,9 +164,9 @@
             ]
         },
         {
-            "sort": 7,
+            "sort": 10,
             "name": "R2 Public CDN Domain",
-            "description": "Optional custom CDN domain (e.g. https://cdn.vhming.com/). If blank, files proxy through server.",
+            "description": "Optional custom CDN domain (e.g. https://cdn.vhming.com/).",
             "env_variable": "R2_PUBLIC_DOMAIN",
             "default_value": "",
             "user_viewable": true,
@@ -140,7 +178,7 @@
             ]
         },
         {
-            "sort": 8,
+            "sort": 11,
             "name": "App Public URL",
             "description": "Public domain URL where this dashboard is accessed (e.g. https://r2-upl.vhming.com).",
             "env_variable": "APP_URL",
@@ -154,9 +192,9 @@
             ]
         },
         {
-            "sort": 9,
+            "sort": 12,
             "name": "Master Admin Secret Key",
-            "description": "Master secret key for Web Dashboard login & managing session keys. Leave blank for open mode.",
+            "description": "Master secret key for Web Dashboard login & managing session keys.",
             "env_variable": "ADMIN_KEY",
             "default_value": "",
             "user_viewable": true,
@@ -165,20 +203,6 @@
                 "nullable",
                 "string",
                 "max:64"
-            ]
-        },
-        {
-            "sort": 10,
-            "name": "Direct Binary Download URL",
-            "description": "Optional direct URL to download pre-compiled r2-uploader binary during installation.",
-            "env_variable": "DOWNLOAD_URL",
-            "default_value": "",
-            "user_viewable": true,
-            "user_editable": true,
-            "rules": [
-                "nullable",
-                "string",
-                "max:500"
             ]
         }
     ]
