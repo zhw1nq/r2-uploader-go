@@ -19,9 +19,11 @@
     ],
     "features": null,
     "docker_images": {
-        "Go 1.24 (Yolks - Auto Build)": "ghcr.io/parkervcp/yolks:go_1.24",
-        "Alpine (Yolks - Prebuilt Binary)": "ghcr.io/parkervcp/yolks:alpine",
-        "Debian (Yolks - Prebuilt Binary)": "ghcr.io/parkervcp/yolks:debian"
+        "Go 1.23 (Yolks)": "ghcr.io/parkervcp/yolks:go_1.23",
+        "Go 1.22 (Yolks)": "ghcr.io/parkervcp/yolks:go_1.22",
+        "Golang 1.23 (Alpine)": "golang:1.23-alpine",
+        "Alpine (Yolks)": "ghcr.io/parkervcp/yolks:alpine",
+        "Debian (Yolks)": "ghcr.io/parkervcp/yolks:debian"
     },
     "file_denylist": [],
     "startup_commands": {
