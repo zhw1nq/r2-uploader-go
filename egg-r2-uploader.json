@@ -4,11 +4,11 @@
         "version": "PLCN_v3",
         "update_url": null
     },
-    "exported_at": "2026-10-05T15:35:00+00:00",
+    "exported_at": "2026-10-05T15:45:00+00:00",
     "name": "Cloudflare R2 Uploader",
     "author": "hi@vhming.com",
     "uuid": "edb76057-793d-49b8-93ad-d31ddc731cb8",
-    "description": "Production-ready Cloudflare R2 Uploader with automated Git clone & Go compilation directly in Console, dark Web Dashboard, multi-session keys, and audit logs.",
+    "description": "Production-ready Cloudflare R2 Uploader with automated Git pull & Go compilation, dark Web Dashboard, multi-session keys, and audit logs.",
     "icon": null,
     "tags": [
         "golang",
@@ -21,13 +21,12 @@
     "docker_images": {
         "Go 1.23 (Yolks)": "ghcr.io/parkervcp/yolks:go_1.23",
         "Go 1.22 (Yolks)": "ghcr.io/parkervcp/yolks:go_1.22",
-        "Golang 1.23 (Alpine)": "golang:1.23-alpine",
         "Alpine (Yolks)": "ghcr.io/parkervcp/yolks:alpine",
         "Debian (Yolks)": "ghcr.io/parkervcp/yolks:debian"
     },
     "file_denylist": [],
     "startup_commands": {
-        "Default": "if [ ! -d .git ]; then echo \"[1/3] Cloning source code from ${GIT_ADDRESS}...\"; git clone --single-branch --branch ${GIT_BRANCH} ${GIT_ADDRESS} .; elif [ \"${AUTO_UPDATE}\" = \"1\" ]; then echo \"[1/3] Checking Git updates...\"; git config --global --add safe.directory /home/container; git pull origin ${GIT_BRANCH}; fi; if [ ! -f ./${SERVER_BINARY} ] || [ \"${AUTO_UPDATE}\" = \"1\" ]; then echo \"[2/3] Compiling Go production binary (${SERVER_BINARY})...\"; CGO_ENABLED=0 go build -ldflags=\"-s -w\" -o ${SERVER_BINARY} ./cmd/server; fi; echo \"[3/3] Launching ${SERVER_BINARY}...\"; chmod +x ./${SERVER_BINARY} && ./${SERVER_BINARY}"
+        "Default": "if [ ! -d .git ]; then echo \"[1/3] Fetching source code from Git...\"; git config --global --add safe.directory /home/container; git init; git remote add origin ${GIT_ADDRESS}; git fetch --depth=1 origin ${GIT_BRANCH}; git checkout -f ${GIT_BRANCH}; elif [ \"${AUTO_UPDATE}\" = \"1\" ]; then echo \"[1/3] Updating source code from Git...\"; git config --global --add safe.directory /home/container; git fetch origin ${GIT_BRANCH}; git reset --hard origin/${GIT_BRANCH}; fi; if [ ! -f ./${SERVER_BINARY} ] || [ \"${AUTO_UPDATE}\" = \"1\" ]; then echo \"[2/3] Compiling Go production binary (${SERVER_BINARY})...\"; CGO_ENABLED=0 go build -ldflags=\"-s -w\" -o ${SERVER_BINARY} ./cmd/server; fi; echo \"[3/3] Launching ${SERVER_BINARY}...\"; chmod +x ./${SERVER_BINARY} && ./${SERVER_BINARY}"
     },
     "config": {
         "files": "{\r\n    \".env\": {\r\n        \"parser\": \"properties\",\r\n        \"find\": {\r\n            \"PORT\": \"{{server.build.default.port}}\",\r\n            \"R2_ACCOUNT_ID\": \"{{env.R2_ACCOUNT_ID}}\",\r\n            \"R2_ACCESS_KEY_ID\": \"{{env.R2_ACCESS_KEY_ID}}\",\r\n            \"R2_SECRET_ACCESS_KEY\": \"{{env.R2_SECRET_ACCESS_KEY}}\",\r\n            \"R2_BUCKET_NAME\": \"{{env.R2_BUCKET_NAME}}\",\r\n            \"R2_ROOT_FOLDER\": \"{{env.R2_ROOT_FOLDER}}\",\r\n            \"R2_PUBLIC_DOMAIN\": \"{{env.R2_PUBLIC_DOMAIN}}\",\r\n            \"APP_URL\": \"{{env.APP_URL}}\",\r\n            \"ADMIN_KEY\": \"{{env.ADMIN_KEY}}\"\r\n        }\r\n    }\r\n}",
@@ -37,8 +36,8 @@
     },
     "scripts": {
         "installation": {
-            "script": "#!/bin/ash\nmkdir -p /mnt/server/data\nif [ ! -f /mnt/server/.env ]; then\n    cat << 'EOF' > /mnt/server/.env\nPORT=${SERVER_PORT}\nR2_ACCOUNT_ID=${R2_ACCOUNT_ID}\nR2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}\nR2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}\nR2_BUCKET_NAME=${R2_BUCKET_NAME}\nR2_ROOT_FOLDER=${R2_ROOT_FOLDER}\nR2_PUBLIC_DOMAIN=${R2_PUBLIC_DOMAIN}\nAPP_URL=${APP_URL}\nADMIN_KEY=${ADMIN_KEY}\nSQLITE_PATH=data/data.db\nKEY_PREFIX=sk_vhming_\nEOF\nfi\necho \"Installation ready. Build will execute in Console.\"",
-            "container": "alpine:latest",
+            "script": "#!/bin/ash\napk add --no-cache git ca-certificates\n\ncd /mnt/server\nmkdir -p data\n\ngit config --global --add safe.directory /mnt/server\n\nif [ ! -d .git ]; then\n    echo \"[Installer] Initializing repository...\"\n    git init\n    git remote add origin ${GIT_ADDRESS}\n    git fetch --depth=1 origin ${GIT_BRANCH}\n    git checkout -f ${GIT_BRANCH}\nelse\n    echo \"[Installer] Updating repository...\"\n    git fetch origin ${GIT_BRANCH}\n    git reset --hard origin/${GIT_BRANCH}\nfi\n\nif [ ! -f .env ]; then\n    cat << 'EOF' > .env\nPORT=${SERVER_PORT}\nR2_ACCOUNT_ID=${R2_ACCOUNT_ID}\nR2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}\nR2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}\nR2_BUCKET_NAME=${R2_BUCKET_NAME}\nR2_ROOT_FOLDER=${R2_ROOT_FOLDER}\nR2_PUBLIC_DOMAIN=${R2_PUBLIC_DOMAIN}\nAPP_URL=${APP_URL}\nADMIN_KEY=${ADMIN_KEY}\nSQLITE_PATH=data/data.db\nKEY_PREFIX=sk_vhming_\nEOF\nfi\n\necho \"-----------------------------------------\"\necho \"Installation completed successfully.\"\necho \"-----------------------------------------\"",
+            "container": "ghcr.io/parkervcp/installers:alpine",
             "entrypoint": "/bin/ash"
         }
     },
