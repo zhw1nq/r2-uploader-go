@@ -1,0 +1,19 @@
+services:
+  r2-uploader:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile
+    container_name: r2-uploader
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../data:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

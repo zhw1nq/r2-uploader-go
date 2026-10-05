@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>R2 Cloud Storage Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+  <link rel="stylesheet" href="/style.css?v=4">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="header">
+    <div class="header-container">
+      <div class="brand">
+        <i class="ph ph-cloud" style="font-size: 1.15rem;"></i>
+        <span class="brand-title">R2 UPLOADER</span>
+        <span class="brand-bucket" id="r2BucketName">Connecting...</span>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs">
+        <button class="nav-tab active" data-tab="files-view"><i class="ph ph-folder"></i> Files</button>
+        <button class="nav-tab" data-tab="sessions-view"><i class="ph ph-key"></i> Sessions</button>
+        <button class="nav-tab" data-tab="logs-view"><i class="ph ph-clock-counter-clockwise"></i> Activity Logs</button>
+        <button class="nav-tab" data-tab="docs-view"><i class="ph ph-code"></i> API Docs</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="main-wrapper">
+
+    <!-- Tab 1: File Explorer -->
+    <section id="files-view" class="tab-content active">
+      
+      <!-- Explorer Modular Panel -->
+      <div class="explorer-card">
+        
+        <!-- Explorer Header Bar: Breadcrumbs + Actions -->
+        <div class="explorer-header">
+          <div class="breadcrumbs" id="breadcrumbsContainer">
+            <span class="breadcrumb-item active" data-path=""><i class="ph ph-folder-open"></i> /uploader</span>
+          </div>
+
+          <div class="explorer-actions">
+            <input type="file" id="fileInput" multiple style="display: none;">
+            <button class="btn btn-primary" id="btnSelectFiles"><i class="ph ph-upload-simple"></i> Upload Files</button>
+            <button class="btn btn-secondary" id="btnNewFolder"><i class="ph ph-folder-plus"></i> New Folder</button>
+            <button class="btn btn-secondary" id="btnGoUp" style="display: none;"><i class="ph ph-arrow-up"></i> Up</button>
+            <button class="btn btn-secondary" id="btnRefreshFiles" title="Refresh"><i class="ph ph-arrows-clockwise"></i> Refresh</button>
+          </div>
+        </div>
+
+        <!-- Explorer Filter & Status Strip -->
+        <div class="explorer-filter-strip">
+          <div class="search-box">
+            <i class="ph ph-magnifying-glass search-icon"></i>
+            <input type="text" id="searchInput" placeholder="Filter files in current folder...">
+          </div>
+
+          <div class="filter-chips">
+            <button class="filter-chip active" data-filter="all"><i class="ph ph-squares-four"></i> All</button>
+            <button class="filter-chip" data-filter="image"><i class="ph ph-image"></i> Images</button>
+            <button class="filter-chip" data-filter="video"><i class="ph ph-film-strip"></i> Videos</button>
+            <button class="filter-chip" data-filter="audio"><i class="ph ph-speaker-high"></i> Audio</button>
+            <button class="filter-chip" data-filter="document"><i class="ph ph-file-text"></i> Docs</button>
+          </div>
+
+          <div class="explorer-stats" id="explorerStats">
+            <span id="statItemCount">0 items</span>
+            <span class="stats-sep">•</span>
+            <span id="statTotalSize">0 B</span>
+          </div>
+        </div>
+
+        <!-- Sleek Dropzone Banner -->
+        <div class="dropzone-compact" id="dropzone">
+          <i class="ph ph-cloud-arrow-up dropzone-icon" style="font-size: 1.1rem; margin-right: 0.5rem;"></i>
+          <span class="dropzone-text">Drop files here or click "Upload Files" to upload into current directory</span>
+          <input type="hidden" id="uploadFolderPrefix">
+        </div>
+
+        <!-- Upload Queue Progress Box -->
+        <div id="uploadQueueContainer" class="upload-queue" style="display: none;"></div>
+
+        <!-- Files Container: Table View -->
+        <div id="filesTableContainer" class="files-table-container">
+          <table class="files-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th style="width: 100px;">Type</th>
+                <th style="width: 110px;">Size</th>
+                <th style="width: 180px;">Modified</th>
+                <th style="width: 240px; text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="filesTableBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyFilesState" class="empty-state" style="display: none;">
+          <i class="ph ph-folder-open empty-icon" style="font-size: 2.5rem; display: block; margin-bottom: 0.5rem; color: var(--text-muted);"></i>
+          <h4 class="empty-title">This directory is empty</h4>
+          <p>Drag and drop files here or click "Upload Files" to get started.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Tab 2: Session Keys Management -->
+    <section id="sessions-view" class="tab-content" style="display: none;">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Sessions Management</h2>
+          <p class="section-desc">Manage API tokens and access permissions (Upload, Read, Delete, Admin) for clients and automated services.</p>
+        </div>
+        <button class="btn btn-primary" id="btnOpenCreateSessionModal"><i class="ph ph-plus"></i> Create Session Key</button>
+      </div>
+
+      <!-- Sessions Table -->
+      <div class="files-table-container" style="background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-md);">
+        <table class="files-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Permissions</th>
+              <th>Status</th>
+              <th>Expires</th>
+              <th>Last Used</th>
+              <th style="text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="sessionsTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Tab 3: Activity Logs (Detailed SQLite Audit with 7-Day Auto Purge) -->
+    <section id="logs-view" class="tab-content" style="display: none;">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">System & Storage Activity Logs</h2>
+          <p class="section-desc">Audit trail of uploads, deletions, folders, and session keys in SQLite. Auto-purged after 7 days.</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+          <span class="badge" title="Logs older than 7 days are automatically purged"><i class="ph ph-clock"></i> Retention: 7 Days (Auto-purged)</span>
+          <button class="btn btn-secondary" id="btnRefreshLogs"><i class="ph ph-arrows-clockwise"></i> Refresh</button>
+          <button class="btn btn-danger btn-sm" id="btnPurgeLogs" title="Purge records older than 7 days"><i class="ph ph-trash"></i> Purge > 7 Days</button>
+        </div>
+      </div>
+
+      <div class="explorer-card">
+        <!-- Logs Search & Filter Strip -->
+        <div class="explorer-filter-strip">
+          <div class="search-box">
+            <i class="ph ph-magnifying-glass search-icon"></i>
+            <input type="text" id="searchLogsInput" placeholder="Filter logs by action, file, session, IP, or details...">
+          </div>
+          <div class="filter-chips" id="logFilterChips">
+            <button class="filter-chip active" data-log-filter="all"><i class="ph ph-squares-four"></i> All</button>
+            <button class="filter-chip" data-log-filter="UPLOAD"><i class="ph ph-upload-simple"></i> Uploads</button>
+            <button class="filter-chip" data-log-filter="DELETE"><i class="ph ph-trash"></i> Deletes</button>
+            <button class="filter-chip" data-log-filter="FOLDER"><i class="ph ph-folder"></i> Folders</button>
+            <button class="filter-chip" data-log-filter="KEY"><i class="ph ph-key"></i> Keys</button>
+          </div>
+          <div class="explorer-stats">
+            <span id="statLogsCount">0 events</span>
+          </div>
+        </div>
+
+        <div class="files-table-container">
+          <table class="files-table">
+            <thead>
+              <tr>
+                <th style="width: 140px;">Action</th>
+                <th>Target / Key</th>
+                <th style="width: 100px;">Size</th>
+                <th style="width: 150px;">Session</th>
+                <th style="width: 130px;">IP Address</th>
+                <th>Details</th>
+                <th style="width: 170px;">Timestamp</th>
+              </tr>
+            </thead>
+            <tbody id="logsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 4: API Integration Guide (100% Complete & Dynamic) -->
+    <section id="docs-view" class="tab-content" style="display: none;">
+      <div class="section-header" style="align-items: flex-start;">
+        <div>
+          <h2 class="section-title">API Integration Guide</h2>
+          <p class="section-desc">Authenticate requests by passing your Session Key in the <code>X-Session-Key</code> or <code>Authorization: Bearer</code> header, or via <code>?key=</code> query parameter.</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem; background: var(--bg-surface-elevated); border: 1px solid var(--border-default); padding: 0.4rem 0.75rem; border-radius: var(--radius-sm);">
+          <i class="ph ph-key" style="color: var(--text-muted); font-size: 0.9rem;"></i>
+          <span style="font-size: 0.75rem; color: var(--text-secondary); font-family: var(--font-mono);">Key in examples:</span>
+          <input type="text" id="docKeyInput" placeholder="YOUR_SESSION_KEY" style="background: var(--bg-app); border: 1px solid var(--border-default); color: var(--text-primary); font-family: var(--font-mono); font-size: 0.75rem; padding: 3px 8px; border-radius: var(--radius-xs); width: 170px; outline: none;">
+          <button type="button" class="btn btn-secondary btn-xs" id="btnFillDocKey" style="font-size: 0.7rem; padding: 3px 8px; cursor: pointer;" title="Preview examples with current session key">Use My Key</button>
+        </div>
+      </div>
+
+      <div class="docs-stack">
+        <!-- Card 1: Upload Files -->
+        <div class="stat-card" style="display: block;">
+          <div class="doc-header">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge">POST</span>
+              <strong>/api/upload</strong>
+            </div>
+            <span class="doc-perm"><i class="ph ph-shield-check"></i> Permission: upload</span>
+          </div>
+          <p class="doc-desc">Upload one or multiple files directly to Cloudflare R2 (optional folder prefix). Returns full download URLs, CDN public URLs, and comprehensive file metadata.</p>
+          <div class="code-label"><i class="ph ph-terminal-window"></i> Example Request (cURL)</div>
+          <pre class="code-block">curl -X POST "<span class="doc-origin">http://localhost:8080</span>/api/upload" -H "X-Session-Key: <span class="doc-active-key">&lt;session_key&gt;</span>" -F "file=@photo.png" -F "folder=uploads/2026/"</pre>
+          <div class="code-label"><i class="ph ph-code"></i> Example Response (JSON 200 OK)</div>
+          <pre class="code-block">{
+  "message": "Files uploaded successfully",
+  "count": 1,
+  "url": "<span class="doc-origin">http://localhost:8080</span>/api/file?key=uploads/2026/photo.png",
+  "download_url": "<span class="doc-origin">http://localhost:8080</span>/api/file?key=uploads/2026/photo.png",
+  "public_url": "<span class="doc-public-domain">https://cdn.yourdomain.com</span>/uploader/uploads/2026/photo.png",
+  "file": {
+    "name": "photo.png",
+    "original_name": "photo.png",
+    "key": "uploads/2026/photo.png",
+    "full_key": "uploader/uploads/2026/photo.png",
+    "bucket": "<span class="doc-bucket-name">your-bucket</span>",
+    "size": 3853098,
+    "content_type": "image/png",
+    "etag": "e4d909c290d0fb1ca068ffaddf22cbd0",
+    "md5_hash": "e4d909c290d0fb1ca068ffaddf22cbd0",
+    "storage_class": "STANDARD",
+    "url": "<span class="doc-origin">http://localhost:8080</span>/api/file?key=uploads/2026/photo.png",
+    "download_url": "<span class="doc-origin">http://localhost:8080</span>/api/file?key=uploads/2026/photo.png",
+    "public_url": "<span class="doc-public-domain">https://cdn.yourdomain.com</span>/uploader/uploads/2026/photo.png",
+    "uploaded_at": "2026-10-04T07:40:00Z"
+  }
+}</pre>
+        </div>
+
+        <!-- Card 2: Stream / Download Object -->
+        <div class="stat-card" style="display: block;">
+          <div class="doc-header">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge">GET</span>
+              <strong>/api/file?key={file_key}</strong>
+            </div>
+            <span class="doc-perm"><i class="ph ph-shield-check"></i> Permission: read</span>
+          </div>
+          <p class="doc-desc">Stream or download an object directly from Cloudflare R2. Supports HTTP byte-range headers (<code>Range: bytes=0-1024</code>) for media streaming and seeking.</p>
+          <div class="code-label"><i class="ph ph-terminal-window"></i> Example Request (cURL)</div>
+          <pre class="code-block">curl -O "<span class="doc-origin">http://localhost:8080</span>/api/file?key=uploads/2026/photo.png" -H "X-Session-Key: <span class="doc-active-key">&lt;session_key&gt;</span>"</pre>
+        </div>
+
+        <!-- Card 3: File Info & Hash Metadata -->
+        <div class="stat-card" style="display: block;">
+          <div class="doc-header">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge">GET</span>
+              <strong>/api/file/info?key={file_key}</strong>
+            </div>
+            <span class="doc-perm"><i class="ph ph-shield-check"></i> Permission: read</span>
+          </div>
+          <p class="doc-desc">Retrieve object metadata, MD5 hash / ETag, exact byte size, MIME content type, storage class, and download links.</p>
+          <div class="code-label"><i class="ph ph-terminal-window"></i> Example Request (cURL)</div>
+          <pre class="code-block">curl "<span class="doc-origin">http://localhost:8080</span>/api/file/info?key=uploads/2026/photo.png" -H "X-Session-Key: <span class="doc-active-key">&lt;session_key&gt;</span>"</pre>
+          <div class="code-label"><i class="ph ph-code"></i> Example Response (JSON 200 OK)</div>
+          <pre class="code-block">{
+  "name": "photo.png",
+  "key": "uploads/2026/photo.png",
+  "full_key": "uploader/uploads/2026/photo.png",
+  "bucket": "<span class="doc-bucket-name">your-bucket</span>",
+  "size": 3853098,
+  "content_type": "image/png",
+  "etag": "e4d909c290d0fb1ca068ffaddf22cbd0",
+  "md5_hash": "e4d909c290d0fb1ca068ffaddf22cbd0",
+  "last_modified": "2026-10-04T12:00:00Z",
+  "storage_class": "STANDARD",
+  "public_url": "<span class="doc-public-domain">https://cdn.yourdomain.com</span>/uploader/uploads/2026/photo.png",
+  "download_url": "<span class="doc-origin">http://localhost:8080</span>/api/file?key=uploads/2026/photo.png",
+  "metadata": {}
+}</pre>
+        </div>
+
+        <!-- Card 4: List Directory -->
+        <div class="stat-card" style="display: block;">
+          <div class="doc-header">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge">GET</span>
+              <strong>/api/files?path={path}</strong>
+            </div>
+            <span class="doc-perm"><i class="ph ph-shield-check"></i> Permission: read</span>
+          </div>
+          <p class="doc-desc">List subdirectories and files inside a folder in the R2 bucket (leave path empty for root directory).</p>
+          <div class="code-label"><i class="ph ph-terminal-window"></i> Example Request (cURL)</div>
+          <pre class="code-block">curl "<span class="doc-origin">http://localhost:8080</span>/api/files?path=uploads/2026" -H "X-Session-Key: <span class="doc-active-key">&lt;session_key&gt;</span>"</pre>
+          <div class="code-label"><i class="ph ph-code"></i> Example Response (JSON 200 OK)</div>
+          <pre class="code-block">{
+  "current_path": "uploads/2026",
+  "folders": [
+    { "name": "backup", "path": "uploads/2026/backup" }
+  ],
+  "files": [
+    {
+      "key": "uploads/2026/photo.png",
+      "name": "photo.png",
+      "size": 3853098,
+      "last_modified": "2026-10-04T12:00:00Z",
+      "etag": "e4d909c290d0fb1ca068ffaddf22cbd0",
+      "url": "<span class="doc-origin">http://localhost:8080</span>/api/file?key=uploads/2026/photo.png",
+      "public_url": "<span class="doc-public-domain">https://cdn.yourdomain.com</span>/uploader/uploads/2026/photo.png"
+    }
+  ]
+}</pre>
+        </div>
+
+        <!-- Card 5: Delete File -->
+        <div class="stat-card" style="display: block;">
+          <div class="doc-header">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge">DELETE</span>
+              <strong>/api/file?key={file_key}</strong>
+            </div>
+            <span class="doc-perm"><i class="ph ph-shield-check"></i> Permission: delete</span>
+          </div>
+          <p class="doc-desc">Permanently remove an object from Cloudflare R2 storage.</p>
+          <div class="code-label"><i class="ph ph-terminal-window"></i> Example Request (cURL)</div>
+          <pre class="code-block">curl -X DELETE "<span class="doc-origin">http://localhost:8080</span>/api/file?key=uploads/2026/photo.png" -H "X-Session-Key: <span class="doc-active-key">&lt;session_key&gt;</span>"</pre>
+          <div class="code-label"><i class="ph ph-code"></i> Example Response (JSON 200 OK)</div>
+          <pre class="code-block">{
+  "message": "Object 'uploads/2026/photo.png' deleted successfully"
+}</pre>
+        </div>
+
+        <!-- Card 6: Create Folder -->
+        <div class="stat-card" style="display: block;">
+          <div class="doc-header">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge">POST</span>
+              <strong>/api/folder</strong>
+            </div>
+            <span class="doc-perm"><i class="ph ph-shield-check"></i> Permission: upload</span>
+          </div>
+          <p class="doc-desc">Create a virtual directory in Cloudflare R2 storage.</p>
+          <div class="code-label"><i class="ph ph-terminal-window"></i> Example Request (cURL)</div>
+          <pre class="code-block">curl -X POST "<span class="doc-origin">http://localhost:8080</span>/api/folder" -H "X-Session-Key: <span class="doc-active-key">&lt;session_key&gt;</span>" -H "Content-Type: application/json" -d "{\"path\": \"uploads/2026/new-folder\"}"</pre>
+          <div class="code-label"><i class="ph ph-code"></i> Example Response (JSON 201 Created)</div>
+          <pre class="code-block">{
+  "message": "Folder created successfully",
+  "path": "uploads/2026/new-folder"
+}</pre>
+        </div>
+
+        <!-- Card 7: Delete Folder -->
+        <div class="stat-card" style="display: block;">
+          <div class="doc-header">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge">DELETE</span>
+              <strong>/api/folder?path={folder_path}</strong>
+            </div>
+            <span class="doc-perm"><i class="ph ph-shield-check"></i> Permission: delete</span>
+          </div>
+          <p class="doc-desc">Permanently delete a folder and all its contents recursively from Cloudflare R2.</p>
+          <div class="code-label"><i class="ph ph-terminal-window"></i> Example Request (cURL)</div>
+          <pre class="code-block">curl -X DELETE "<span class="doc-origin">http://localhost:8080</span>/api/folder?path=uploads/2026/new-folder" -H "X-Session-Key: <span class="doc-active-key">&lt;session_key&gt;</span>"</pre>
+          <div class="code-label"><i class="ph ph-code"></i> Example Response (JSON 200 OK)</div>
+          <pre class="code-block">{
+  "message": "Folder 'uploads/2026/new-folder' deleted successfully"
+}</pre>
+        </div>
+
+        <!-- Card 8: Direct Public Cloudflare CDN Edge Access -->
+        <div class="stat-card" style="display: block;">
+          <div class="doc-header">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge">PUBLIC</span>
+              <strong>Cloudflare Edge CDN Direct Access</strong>
+            </div>
+            <span class="doc-perm"><i class="ph ph-globe"></i> No Authentication Required</span>
+          </div>
+          <p class="doc-desc">Ultra fast, globally cached CDN delivery served directly through Cloudflare R2 public custom domain.</p>
+          <div class="code-label"><i class="ph ph-link"></i> Public CDN URL Format</div>
+          <pre class="code-block"><span class="doc-public-domain">https://cdn.yourdomain.com</span>/uploader/uploads/2026/photo.png</pre>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- Modal 1: Create Session Key -->
+  <div class="modal-overlay" id="sessionModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="sessionModalTitle">Create Session Key</h3>
+        <button class="btn-close" id="btnCloseSessionModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="sessionForm">
+          <input type="hidden" id="editSessionId">
+          <div class="form-group">
+            <label class="form-label">Key Name / Application</label>
+            <input type="text" id="sessionNameInput" class="form-input" placeholder="e.g. Backup Service, Mobile Client" required>
+          </div>
+
+          <div class="form-group" id="customKeyGroup">
+            <label class="form-label">Custom Token (Optional, auto-generated if blank)</label>
+            <input type="password" id="sessionKeyInput" class="form-input" placeholder="e.g. sk_vhming_... (leave empty to auto-generate)">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Permissions</label>
+            <div class="permissions-grid">
+              <label class="perm-checkbox">
+                <input type="checkbox" name="permissions" value="upload" checked>
+                <span>Upload</span>
+              </label>
+              <label class="perm-checkbox">
+                <input type="checkbox" name="permissions" value="read" checked>
+                <span>Read & Download</span>
+              </label>
+              <label class="perm-checkbox">
+                <input type="checkbox" name="permissions" value="delete">
+                <span>Delete</span>
+              </label>
+              <label class="perm-checkbox">
+                <input type="checkbox" name="permissions" value="admin">
+                <span>Admin</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group" id="expiryGroup">
+            <label class="form-label">Expiration</label>
+            <select id="sessionExpirySelect" class="form-select">
+              <option value="0">Never Expires</option>
+              <option value="7">7 Days</option>
+              <option value="30" selected>30 Days</option>
+              <option value="90">90 Days</option>
+              <option value="365">1 Year</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelSessionModal">Cancel</button>
+        <button class="btn btn-primary" id="btnSaveSession">Save Key</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Active Session / Switch Token Login -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-content" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Switch Active Session Key</h3>
+        <button class="btn-close" id="btnCloseAuthModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Enter Admin Key or Session Token</label>
+          <input type="password" id="authKeyInput" class="form-input" placeholder="Enter key token...">
+          <p class="form-help">Use your ADMIN_KEY from .env for full access, or paste any active Session Key.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelAuthModal">Cancel</button>
+        <button class="btn btn-primary" id="btnApplyAuthKey">Authenticate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Media & Code Previewer -->
+  <div class="modal-overlay" id="previewModal">
+    <div class="modal-content" style="max-width: 800px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="previewFileName">File Preview</h3>
+        <button class="btn-close" id="btnClosePreviewModal">&times;</button>
+      </div>
+      <div class="modal-body" id="previewContainer"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCopyPreviewUrl">Copy Link</button>
+        <a class="btn btn-primary" id="btnDownloadPreview" download target="_blank">Download</a>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Modal 4: File Information & Metadata -->
+  <div class="modal-overlay" id="fileInfoModal">
+    <div class="modal-content" style="max-width: 580px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 0.5rem;">
+          <i class="ph ph-info" style="color: var(--accent-primary);"></i> File Information
+        </h3>
+        <button class="btn-close" id="btnCloseFileInfoModal">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 0.75rem 1.25rem;">
+        <div id="fileInfoLoading" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+          <i class="ph ph-spinner ph-spin" style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem;"></i>
+          Loading metadata...
+        </div>
+        <div id="fileInfoContent" style="display: none;">
+          <table class="info-table" style="font-size: 0.8rem;">
+            <tbody>
+              <tr>
+                <td class="info-label">File Name</td>
+                <td class="info-value" id="infoFileName" style="font-weight: 600;"></td>
+              </tr>
+              <tr>
+                <td class="info-label">Object Key</td>
+                <td class="info-value cell-mono" id="infoFullKey"></td>
+              </tr>
+              <tr>
+                <td class="info-label">File Size</td>
+                <td class="info-value cell-mono" id="infoFileSize"></td>
+              </tr>
+              <tr>
+                <td class="info-label">Content-Type</td>
+                <td class="info-value cell-mono" id="infoContentType"></td>
+              </tr>
+              <tr>
+                <td class="info-label">ETag / MD5</td>
+                <td class="info-value cell-mono" id="infoETag"></td>
+              </tr>
+              <tr>
+                <td class="info-label">Last Modified</td>
+                <td class="info-value cell-mono" id="infoLastModified"></td>
+              </tr>
+              <tr>
+                <td class="info-label">Storage Class</td>
+                <td class="info-value" id="infoStorageClass"></td>
+              </tr>
+              <tr>
+                <td class="info-label">Bucket</td>
+                <td class="info-value cell-mono" id="infoBucket"></td>
+              </tr>
+              <tr id="infoPublicUrlRow">
+                <td class="info-label">Public CDN URL</td>
+                <td class="info-value">
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="text" id="infoPublicUrl" class="form-input" readonly style="font-size: 0.75rem; padding: 0.25rem 0.5rem; height: auto;">
+                    <button class="btn btn-secondary btn-sm" id="btnCopyInfoPublicUrl" title="Copy URL"><i class="ph ph-copy"></i></button>
+                  </div>
+                </td>
+              </tr>
+              <tr id="infoMetadataRow" style="display: none;">
+                <td class="info-label">Metadata</td>
+                <td class="info-value cell-mono" id="infoMetadata"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <button class="btn btn-secondary" id="btnCloseFileInfoBtn">Close</button>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn btn-secondary" id="btnCopyInfoJson" title="Copy raw JSON metadata"><i class="ph ph-code"></i> Copy JSON</button>
+          <a class="btn btn-primary" id="btnDownloadFromInfo" download target="_blank"><i class="ph ph-download-simple"></i> Download</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 5: Create Folder Modal -->
+  <div class="modal-overlay" id="folderModal">
+    <div class="modal-content" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Create Folder</h3>
+        <button class="btn-close" id="btnCloseFolderModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Folder Name</label>
+          <input type="text" id="folderNameInput" class="form-input" placeholder="e.g. photos, documents" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelFolderModal">Cancel</button>
+        <button class="btn btn-primary" id="btnSaveFolder">Create Folder</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/app.js?v=12"></script>
+</body>
+</html>

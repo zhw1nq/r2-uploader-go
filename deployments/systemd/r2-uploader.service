@@ -1,0 +1,25 @@
+[Unit]
+Description=Cloudflare R2 Storage Manager & Uploader Service
+Documentation=https://github.com/zhw1nq/r2-uploader-go
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/r2-uploader
+ExecStart=/opt/r2-uploader/bin/r2-uploader
+Restart=always
+RestartSec=5
+EnvironmentFile=/opt/r2-uploader/.env
+
+# Security & Sandboxing (Production Hardening 2026)
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/r2-uploader/data
+PrivateTmp=true
+NoNewPrivileges=true
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target
