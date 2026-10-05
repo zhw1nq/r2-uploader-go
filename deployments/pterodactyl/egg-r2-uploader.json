@@ -1,0 +1,114 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - LISTING LOCAL EXPORT",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-10-05T22:15:00Z",
+    "name": "Cloudflare R2 Uploader (Go)",
+    "author": "zhw1nq",
+    "description": "Production-ready Cloudflare R2 uploader service with web dashboard, multi-session keys, and audit logs.",
+    "features": null,
+    "docker_images": {
+        "Alpine (Binary)": "ghcr.io/parkervcp/yolks:alpine",
+        "Debian (Binary)": "ghcr.io/parkervcp/yolks:debian",
+        "Go 1.24 (Source)": "ghcr.io/parkervcp/yolks:go_1.24"
+    },
+    "file_denylist": [],
+    "startup": "chmod +x r2-uploader && ./r2-uploader",
+    "config": {
+        "files": "{\r\n    \".env\": {\r\n        \"parser\": \"properties\",\r\n        \"find\": {\r\n            \"PORT\": \"{{server.build.default.port}}\",\r\n            \"R2_ACCOUNT_ID\": \"{{env.R2_ACCOUNT_ID}}\",\r\n            \"R2_ACCESS_KEY_ID\": \"{{env.R2_ACCESS_KEY_ID}}\",\r\n            \"R2_SECRET_ACCESS_KEY\": \"{{env.R2_SECRET_ACCESS_KEY}}\",\r\n            \"R2_BUCKET_NAME\": \"{{env.R2_BUCKET_NAME}}\",\r\n            \"R2_ROOT_FOLDER\": \"{{env.R2_ROOT_FOLDER}}\",\r\n            \"R2_PUBLIC_DOMAIN\": \"{{env.R2_PUBLIC_DOMAIN}}\",\r\n            \"APP_URL\": \"{{env.APP_URL}}\",\r\n            \"ADMIN_KEY\": \"{{env.ADMIN_KEY}}\"\r\n        }\r\n    }\r\n}",
+        "startup": "{\r\n    \"done\": \"Server running at http://\"\r\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/ash\r\necho \"Server installation complete. Please upload r2-uploader binary and configure environment variables.\"",
+            "container": "alpine:latest",
+            "entrypoint": "ash"
+        }
+    },
+    "variables": [
+        {
+            "name": "R2 Account ID",
+            "description": "Cloudflare Account ID found in R2 dashboard",
+            "env_variable": "R2_ACCOUNT_ID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "R2 Access Key ID",
+            "description": "Cloudflare R2 API Access Key ID",
+            "env_variable": "R2_ACCESS_KEY_ID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "R2 Secret Access Key",
+            "description": "Cloudflare R2 API Secret Access Key",
+            "env_variable": "R2_SECRET_ACCESS_KEY",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "R2 Bucket Name",
+            "description": "Cloudflare R2 Target Bucket Name",
+            "env_variable": "R2_BUCKET_NAME",
+            "default_value": "my-bucket",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "R2 Root Folder",
+            "description": "Root folder prefix to sandbox uploaded files",
+            "env_variable": "R2_ROOT_FOLDER",
+            "default_value": "uploader",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "R2 Public CDN Domain",
+            "description": "Optional custom CDN domain (e.g. https://cdn.vhming.com/)",
+            "env_variable": "R2_PUBLIC_DOMAIN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "App Public URL",
+            "description": "Public domain URL where this dashboard is accessed",
+            "env_variable": "APP_URL",
+            "default_value": "http://localhost:8080",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "Master Admin Key",
+            "description": "Master secret key for web dashboard login & session key administration",
+            "env_variable": "ADMIN_KEY",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        }
+    ]
+}
