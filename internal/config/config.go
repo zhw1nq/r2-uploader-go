@@ -42,6 +42,11 @@ func Load() *Config {
 		pubDomain = strings.TrimRight(pubDomain, "/")
 	}
 
+	port := getEnv("PORT", "")
+	if port == "" {
+		port = getEnv("SERVER_PORT", "8080")
+	}
+
 	return &Config{
 		AccountID:       getEnv("R2_ACCOUNT_ID", ""),
 		AccessKeyID:     getEnv("R2_ACCESS_KEY_ID", ""),
@@ -49,7 +54,7 @@ func Load() *Config {
 		BucketName:      getEnv("R2_BUCKET_NAME", ""),
 		PublicDomain:    pubDomain,
 		AppURL:          appURL,
-		Port:            getEnv("PORT", "8080"),
+		Port:            port,
 		AdminKey:        getEnv("ADMIN_KEY", ""),
 		RootFolder:      root,
 		DBPath:          getEnv("SQLITE_PATH", "data/data.db"),
