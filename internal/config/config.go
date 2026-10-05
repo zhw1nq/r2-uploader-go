@@ -43,8 +43,13 @@ func Load() *Config {
 	}
 
 	port := getEnv("PORT", "")
-	if port == "" {
+	port = os.ExpandEnv(port)
+	if port == "" || strings.HasPrefix(port, "$") {
 		port = getEnv("SERVER_PORT", "8080")
+	}
+	port = os.ExpandEnv(port)
+	if port == "" || strings.HasPrefix(port, "$") {
+		port = "8080"
 	}
 
 	return &Config{
@@ -80,7 +85,12 @@ func loadDotEnv(filename string) {
 			key := strings.TrimSpace(parts[0])
 			val := strings.TrimSpace(parts[1])
 			val = strings.Trim(val, `"'`)
-			if os.Getenv(key) == "" {
+			val = os.ExpandEnv(val)
+			if strings.HasPrefix(val, "$") {
+				// Skip setting unresolved variable template (e.g. ${SERVER_PORT} if not expanded)
+				continue
+			}
+			if os.Getenv(key) == "" && val != "" {
 				os.Setenv(key, val)
 			}
 		}
@@ -89,7 +99,11 @@ func loadDotEnv(filename string) {
 
 func getEnv(key, fallback string) string {
 	if val := os.Getenv(key); val != "" {
-		return val
+		val = os.ExpandEnv(val)
+		if !strings.HasPrefix(val, "$") && val != "" {
+			return val
+		}
 	}
 	return fallback
 }
+

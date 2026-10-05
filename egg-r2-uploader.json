@@ -25,7 +25,7 @@
     },
     "file_denylist": [],
     "startup_commands": {
-        "Default": "chmod -R u+w .go 2>/dev/null; rm -rf .go .cache .tmp 2>/dev/null || true; if [ ! -f ./${SERVER_BINARY} ] || [ \"${AUTO_UPDATE}\" = \"1\" ]; then echo \"[1/2] Downloading Linux production binary from GitHub...\"; curl -sSL -o ./${SERVER_BINARY} https://github.com/zhw1nq/r2-uploader-go/raw/main/bin/r2-uploader; fi; echo \"[2/2] Launching ${SERVER_BINARY}...\"; chmod +x ./${SERVER_BINARY} && ./${SERVER_BINARY}"
+        "Default": "if command -v wget >/dev/null 2>&1; then wget -q -O ./r2-uploader https://github.com/zhw1nq/r2-uploader-go/raw/main/bin/r2-uploader; elif command -v curl >/dev/null 2>&1; then curl -sSL -o ./r2-uploader https://github.com/zhw1nq/r2-uploader-go/raw/main/bin/r2-uploader; fi; chmod +x ./r2-uploader && ./r2-uploader"
     },
     "config": {
         "files": "{\r\n    \".env\": {\r\n        \"parser\": \"properties\",\r\n        \"find\": {\r\n            \"PORT\": \"{{server.build.default.port}}\",\r\n            \"R2_ACCOUNT_ID\": \"{{env.R2_ACCOUNT_ID}}\",\r\n            \"R2_ACCESS_KEY_ID\": \"{{env.R2_ACCESS_KEY_ID}}\",\r\n            \"R2_SECRET_ACCESS_KEY\": \"{{env.R2_SECRET_ACCESS_KEY}}\",\r\n            \"R2_BUCKET_NAME\": \"{{env.R2_BUCKET_NAME}}\",\r\n            \"R2_ROOT_FOLDER\": \"{{env.R2_ROOT_FOLDER}}\",\r\n            \"R2_PUBLIC_DOMAIN\": \"{{env.R2_PUBLIC_DOMAIN}}\",\r\n            \"APP_URL\": \"{{env.APP_URL}}\",\r\n            \"ADMIN_KEY\": \"{{env.ADMIN_KEY}}\"\r\n        }\r\n    }\r\n}",
