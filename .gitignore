@@ -4,7 +4,8 @@
 *.dll
 *.so
 *.dylib
-bin/
+bin/*
+!bin/r2-uploader
 dist/
 
 # Test binary, built with `go test -c`
