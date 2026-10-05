@@ -1,0 +1,185 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PANEL",
+    "meta": {
+        "version": "PLCN_v3",
+        "update_url": null
+    },
+    "exported_at": "2026-10-05T15:18:00+00:00",
+    "name": "Cloudflare R2 Uploader",
+    "author": "hi@vhming.com",
+    "uuid": "edb76057-793d-49b8-93ad-d31ddc731cb8",
+    "description": "Production-ready Cloudflare R2 Uploader with dark Web Dashboard SPA, multi-session keys, and activity audit logs.",
+    "icon": null,
+    "tags": [
+        "golang",
+        "cloudflare",
+        "r2",
+        "uploader",
+        "web"
+    ],
+    "features": null,
+    "docker_images": {
+        "Alpine (Yolks)": "ghcr.io/parkervcp/yolks:alpine",
+        "Debian (Yolks)": "ghcr.io/parkervcp/yolks:debian",
+        "Go 1.24 (Yolks)": "ghcr.io/parkervcp/yolks:go_1.24"
+    },
+    "file_denylist": [],
+    "startup_commands": {
+        "Default": "chmod +x {{SERVER_BINARY}} && ./{{SERVER_BINARY}}"
+    },
+    "config": {
+        "files": "{\r\n    \".env\": {\r\n        \"parser\": \"properties\",\r\n        \"find\": {\r\n            \"PORT\": \"{{server.build.default.port}}\",\r\n            \"R2_ACCOUNT_ID\": \"{{env.R2_ACCOUNT_ID}}\",\r\n            \"R2_ACCESS_KEY_ID\": \"{{env.R2_ACCESS_KEY_ID}}\",\r\n            \"R2_SECRET_ACCESS_KEY\": \"{{env.R2_SECRET_ACCESS_KEY}}\",\r\n            \"R2_BUCKET_NAME\": \"{{env.R2_BUCKET_NAME}}\",\r\n            \"R2_ROOT_FOLDER\": \"{{env.R2_ROOT_FOLDER}}\",\r\n            \"R2_PUBLIC_DOMAIN\": \"{{env.R2_PUBLIC_DOMAIN}}\",\r\n            \"APP_URL\": \"{{env.APP_URL}}\",\r\n            \"ADMIN_KEY\": \"{{env.ADMIN_KEY}}\"\r\n        }\r\n    }\r\n}",
+        "startup": "{\n    \"done\": \"Server listening on\"\n}",
+        "logs": "[]",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# r2-uploader installation script\nmkdir -p /mnt/server/data\n\nif [ ! -f /mnt/server/.env ]; then\ncat << 'EOF' > /mnt/server/.env\nPORT=${SERVER_PORT}\nR2_ACCOUNT_ID=${R2_ACCOUNT_ID}\nR2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}\nR2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}\nR2_BUCKET_NAME=${R2_BUCKET_NAME}\nR2_ROOT_FOLDER=${R2_ROOT_FOLDER}\nR2_PUBLIC_DOMAIN=${R2_PUBLIC_DOMAIN}\nAPP_URL=${APP_URL}\nADMIN_KEY=${ADMIN_KEY}\nSQLITE_PATH=data/data.db\nKEY_PREFIX=sk_vhming_\nEOF\nfi\n\nif [ -n \"${DOWNLOAD_URL}\" ]; then\n  echo \"Downloading binary from ${DOWNLOAD_URL}...\"\n  curl -sSL -o /mnt/server/${SERVER_BINARY} \"${DOWNLOAD_URL}\"\n  chmod +x /mnt/server/${SERVER_BINARY}\nfi\n\necho \"-----------------------------------------\"\necho \"Installation completed.\"\necho \"Please ensure '${SERVER_BINARY}' is present before starting.\"\necho \"-----------------------------------------\"",
+            "container": "ghcr.io/parkervcp/installers:debian",
+            "entrypoint": "/bin/bash"
+        }
+    },
+    "variables": [
+        {
+            "sort": 1,
+            "name": "Server Binary Name",
+            "description": "The name of the executable binary file to run.",
+            "env_variable": "SERVER_BINARY",
+            "default_value": "r2-uploader",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:64"
+            ]
+        },
+        {
+            "sort": 2,
+            "name": "Cloudflare Account ID",
+            "description": "Your Cloudflare Account ID found in R2 Overview dashboard.",
+            "env_variable": "R2_ACCOUNT_ID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:64"
+            ]
+        },
+        {
+            "sort": 3,
+            "name": "Cloudflare R2 Access Key ID",
+            "description": "R2 API Token Access Key ID with Object Read & Write permissions.",
+            "env_variable": "R2_ACCESS_KEY_ID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:64"
+            ]
+        },
+        {
+            "sort": 4,
+            "name": "Cloudflare R2 Secret Access Key",
+            "description": "R2 API Token Secret Access Key.",
+            "env_variable": "R2_SECRET_ACCESS_KEY",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:128"
+            ]
+        },
+        {
+            "sort": 5,
+            "name": "R2 Bucket Name",
+            "description": "Target bucket name in Cloudflare R2.",
+            "env_variable": "R2_BUCKET_NAME",
+            "default_value": "uploader",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:64"
+            ]
+        },
+        {
+            "sort": 6,
+            "name": "R2 Root Folder Scope",
+            "description": "Root folder prefix to sandbox uploaded files (defaults to uploader).",
+            "env_variable": "R2_ROOT_FOLDER",
+            "default_value": "uploader",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:64"
+            ]
+        },
+        {
+            "sort": 7,
+            "name": "R2 Public CDN Domain",
+            "description": "Optional custom CDN domain (e.g. https://cdn.vhming.com/). If blank, files proxy through server.",
+            "env_variable": "R2_PUBLIC_DOMAIN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:128"
+            ]
+        },
+        {
+            "sort": 8,
+            "name": "App Public URL",
+            "description": "Public domain URL where this dashboard is accessed (e.g. https://r2-upl.vhming.com).",
+            "env_variable": "APP_URL",
+            "default_value": "https://r2-upl.vhming.com",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:128"
+            ]
+        },
+        {
+            "sort": 9,
+            "name": "Master Admin Secret Key",
+            "description": "Master secret key for Web Dashboard login & managing session keys. Leave blank for open mode.",
+            "env_variable": "ADMIN_KEY",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:64"
+            ]
+        },
+        {
+            "sort": 10,
+            "name": "Direct Binary Download URL",
+            "description": "Optional direct URL to download pre-compiled r2-uploader binary during installation.",
+            "env_variable": "DOWNLOAD_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:500"
+            ]
+        }
+    ]
+}
